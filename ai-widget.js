@@ -1,133 +1,136 @@
-// === Inject CSS styles === //
+// ✅ YOUR LIVE WEBHOOK URL
+const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in";
+
+// Create and inject CSS
 const widgetStyles = `
-#ai-widget-button {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 60px;
-  height: 60px;
-  background: #007aff;
-  color: #fff;
-  border-radius: 50%;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-  z-index: 999999;
-}
-
-#ai-widget-chat {
-  position: fixed;
-  bottom: 100px;
-  right: 24px;
-  width: 350px;
-  height: 460px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-  display: none;
-  flex-direction: column;
-  font-family: sans-serif;
-  z-index: 999999;
-}
-
-#ai-chat-header {
-  background: #007aff;
-  padding: 14px;
-  color: white;
-  font-size: 16px;
-  border-radius: 12px 12px 0 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#ai-chat-messages {
-  padding: 12px;
-  overflow-y: auto;
-  height: 310px;
-  font-size: 14px;
-}
-
-#ai-chat-input {
-  display: flex;
-  border-top: 1px solid #ddd;
-}
-
-#ai-chat-input input {
-  flex: 1;
-  border: none;
-  padding: 10px;
-  outline: none;
-}
-
-#ai-chat-input button {
-  width: 80px;
-  border: none;
-  background: #007aff;
-  color: white;
-  cursor: pointer;
-}
+  #ai-widget-button {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    background: #007aff;
+    color: #fff;
+    border-radius: 50%;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    z-index: 999999;
+  }
+  #ai-widget-chat {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 350px;
+    height: 460px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: none;
+    flex-direction: column;
+    z-index: 999998;
+  }
+  #ai-widget-header {
+    padding: 16px;
+    background: #007aff;
+    color: #fff;
+    font-size: 18px;
+    border-radius: 14px 14px 0 0;
+  }
+  #ai-widget-messages {
+    flex: 1;
+    padding: 14px;
+    overflow-y: auto;
+    font-size: 14px;
+    color: #222;
+  }
+  #ai-widget-input-container {
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  #ai-widget-input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  #ai-widget-send {
+    background: #007aff;
+    color: white;
+    border: none;
+    padding: 0 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
 `;
 
-// Inject CSS
+// Add style tag
 const styleTag = document.createElement("style");
 styleTag.innerHTML = widgetStyles;
 document.head.appendChild(styleTag);
 
-// === Create widget elements === //
-const chatButton = document.createElement("button");
-chatButton.id = "ai-widget-button";
-chatButton.innerText = "💬";
-document.body.appendChild(chatButton);
+// Create button
+const button = document.createElement("button");
+button.id = "ai-widget-button";
+button.innerText = "💬";
+document.body.appendChild(button);
 
-const chatBox = document.createElement("div");
-chatBox.id = "ai-widget-chat";
-chatBox.innerHTML = `
-  <div id="ai-chat-header">
-    Mäklar-Assistent
-    <span style="cursor:pointer;" id="ai-chat-close">✖</span>
-  </div>
-  <div id="ai-chat-messages"></div>
-
-  <div id="ai-chat-input">
-    <input id="ai-chat-text" type="text" placeholder="Skriv din fråga...">
-    <button id="ai-chat-send">Skicka</button>
+// Create chat container
+const chat = document.createElement("div");
+chat.id = "ai-widget-chat";
+chat.innerHTML = `
+  <div id="ai-widget-header">AI-Mäklare</div>
+  <div id="ai-widget-messages"></div>
+  <div id="ai-widget-input-container">
+    <input id="ai-widget-input" placeholder="Skriv ett meddelande...">
+    <button id="ai-widget-send">➤</button>
   </div>
 `;
-document.body.appendChild(chatBox);
+document.body.appendChild(chat);
 
-// Toggle chat
-chatButton.onclick = () => chatBox.style.display = "flex";
-document.getElementById("ai-chat-close").onclick = () => chatBox.style.display = "none";
+const messagesContainer = document.getElementById("ai-widget-messages");
+const inputField = document.getElementById("ai-widget-input");
 
-// Add message to UI
-function addMessage(text, sender) {
-  const msgDiv = document.createElement("div");
-  msgDiv.textContent = text;
-  msgDiv.style.margin = "10px 0";
-  msgDiv.style.textAlign = sender === "bot" ? "left" : "right";
-  document.getElementById("ai-chat-messages").appendChild(msgDiv);
+// Toggle chat visibility
+button.addEventListener("click", () => {
+  chat.style.display = chat.style.display === "flex" ? "none" : "flex";
+  chat.style.flexDirection = "column";
+});
+
+// Append messages
+function addMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  messagesContainer.appendChild(msg);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Send message to your Webhook
-async function send() {
-  const input = document.getElementById("ai-chat-text");
-  const userMessage = input.value;
-  input.value = "";
-  addMessage(userMessage, "user");
+// Handle sending
+async function sendMessage() {
+  const userMessage = inputField.value.trim();
+  if (!userMessage) return;
 
-  const res = await fetch("YOUR_WEBHOOK_URL", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: userMessage })
-  });
+  addMessage("Du", userMessage);
+  inputField.value = "";
 
-  const data = await res.json();
-  addMessage(data.reply, "bot");
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userMessage })
+    });
+
+    const data = await response.json();
+    addMessage("AI", data.reply);
+  } catch (err) {
+    addMessage("System", "Fel: Kunde inte nå AI-servern 😢");
+  }
 }
 
-document.getElementById("ai-chat-send").onclick = send;
-document.getElementById("ai-chat-text").addEventListener("keypress", e => {
-  if (e.key === "Enter") send();
+document.getElementById("ai-widget-send").addEventListener("click", sendMessage);
+inputField.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendMessage();
 });
