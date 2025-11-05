@@ -2,13 +2,240 @@
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <title>Mäklar-Widget Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mäklarchat – Demo</title>
+
+  <!-- Modern font -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #0b0f1a;
+      --card: #0f1629;
+      --ink: #e6e8ee;
+      --muted: #a6b0c0;
+      --accent: #7c5cff;
+      --accent-2: #24b5a4;
+      --stroke: #1e2640;
+      --bubble-ai:#101a33;
+      --bubble-user:#182542;
+    }
+    *{ box-sizing: border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial;
+      color:var(--ink);
+      background: radial-gradient(1200px 600px at 75% -10%, #3a2cff33, transparent), radial-gradient(900px 400px at 10% 110%, #13bfa833, transparent), var(--bg);
+    }
+
+    /* Page shell */
+    .container{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 20px 120px;
+    }
+    header{
+      display:flex; align-items:center; gap:14px; padding:10px 0 24px;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c5cff,#5a3fff);display:grid;place-items:center;
+      box-shadow: 0 8px 30px #7c5cff44;
+      font-weight:700;
+    }
+    .brand{ font-weight:700; letter-spacing:0.2px }
+    .hero{
+      display:grid; grid-template-columns: 1.1fr 0.9fr; gap:28px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){ .hero{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)) , var(--card);
+      border:1px solid var(--stroke); border-radius:24px; overflow:hidden;
+      box-shadow: 0 20px 70px rgba(0,0,0,0.35);
+    }
+    .p-hero{ padding:28px 28px 30px; }
+    .headline{ font-size: clamp(26px, 4.2vw, 44px); line-height:1.1; margin: 6px 0 12px; }
+    .tag{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:12px; background:#0b1327; color:#c6d1ff; border:1px solid #1a2450; font-size:13px;
+    }
+    .lead{ color:var(--muted); font-size: 16px; margin: 0 0 18px }
+    .row{ display:flex; gap:12px; flex-wrap:wrap }
+    .btn{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:14px; border:1px solid transparent; cursor:pointer;
+      color:white; font-weight:600; transition: transform .08s ease, box-shadow .2s ease, opacity .2s ease;
+      text-decoration:none; user-select:none;
+    }
+    .btn:active{ transform: translateY(1px) }
+    .btn.primary{ background: linear-gradient(135deg, var(--accent), #4f39ff); box-shadow: 0 10px 26px #7c5cff44; }
+    .btn.ghost{ background: transparent; border-color: var(--stroke); color: var(--ink); }
+    .bullet{ display:grid; grid-template-columns: 24px 1fr; gap:10px; margin-top:10px; color:var(--muted) }
+    .bullet b{ color:var(--ink) }
+
+    .panel{
+      padding: 22px;
+      display:grid; gap:14px;
+      background: #0e1730; border-left: 1px solid var(--stroke);
+    }
+    .panel .mini{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border:1px dashed #2a3766; border-radius:14px; color:#c9d6ff; font-size:13px;
+      background: #0b142c;
+    }
+
+    /* Floating chat */
+    .fab{
+      position:fixed; right:22px; bottom:22px; z-index:50;
+      background: linear-gradient(135deg, var(--accent), #4f39ff);
+      color:#fff; border:none; border-radius:999px; padding:14px 18px; display:flex; align-items:center; gap:10px;
+      box-shadow: 0 14px 40px #7c5cff55; font-weight:600; cursor:pointer;
+    }
+    .fab svg{ width:18px;height:18px }
+
+    .widget{
+      position:fixed; right:22px; bottom:94px; z-index:60;
+      width: min(92vw, 420px); max-height: 78vh;
+      display:none; /* toggled by .open */
+    }
+    .widget.open{ display:block }
+    .w-card{
+      background: var(--card); border:1px solid var(--stroke); border-radius:20px;
+      overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      display:flex; flex-direction:column; height:100%;
+    }
+    .w-header{
+      padding:14px 14px 12px;
+      background: radial-gradient(800px 300px at 90% -40%, #7c5cff33, transparent);
+      border-bottom:1px solid var(--stroke);
+      display:flex; align-items:center; gap:12px;
+    }
+    .w-logo{ width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:#1a2450; color:#cbd2ff; font-weight:700 }
+    .w-title{ font-weight:700 }
+    .w-sub{ color:#c3cae3; font-size:12px }
+    .w-close{ margin-left:auto; background:transparent; border:1px solid var(--stroke); color:#cfd5f6; border-radius:10px; padding:6px 8px; cursor:pointer }
+
+    .w-messages{ padding:14px; display:flex; flex-direction:column; gap:10px; overflow:auto; max-height:52vh }
+    .bubble{
+      max-width: 85%; padding:10px 12px; border:1px solid var(--stroke); border-radius:14px; font-size:14px; line-height:1.45
+    }
+    .bubble.ai{ background: var(--bubble-ai); color:#e9edff; border-top-left-radius:6px }
+    .bubble.user{ background: var(--bubble-user); color:#f0f3ff; margin-left:auto; border-top-right-radius:6px }
+    .w-input{
+      padding:12px; border-top:1px solid var(--stroke); display:grid; gap:10px;
+    }
+    .w-input .row{ display:flex; gap:10px }
+    .field{
+      flex:1; display:flex; align-items:center; gap:8px;
+      background:#0c1530; border:1px solid var(--stroke); border-radius:12px; padding:10px 12px; color:#d6dcff;
+    }
+    .field input, .field textarea{
+      all:unset; flex:1; font-size:14px; color:#fff;
+    }
+    textarea{ max-height:110px; }
+    .send{
+      background: linear-gradient(135deg, var(--accent), #4f39ff);
+      border:none; color:#fff; padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer;
+    }
+    .consent{ display:flex; align-items:center; gap:8px; font-size:12px; color:#9fb0d8 }
+    .status{ font-size:12px; color:#ffb3c1 }
+  </style>
 </head>
 <body>
-  <h2>✅ GitHub Pages fungerar!</h2>
+  <div class="container">
+    <header>
+      <div class="logo">M</div>
+      <div>
+        <div class="brand">Mäklar-AI</div>
+        <div style="color:var(--muted); font-size:13px">Snabbare svar • Fler leads • Mindre admin</div>
+      </div>
+    </header>
 
-  <p>Widgeten laddas här →</p>
+    <section class="hero card">
+      <div class="p-hero">
+        <span class="tag">✨ Ny: AI-chatten som samlar leads automatiskt</span>
+        <h1 class="headline">Få svar direkt – och fånga kundens telefonnummer snyggt</h1>
+        <p class="lead">
+          Chatten svarar på vanliga frågor, skickar vidare svårare ärenden och sparar kontakt­uppgifter i ditt Google Sheet.
+          Du får SMS när ett nytt lead kommer in.
+        </p>
+        <div class="row">
+          <a class="btn primary" href="#!" onclick="window.aiwToggle(true)">
+            Starta chatt
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </a>
+          <a class="btn ghost" href="#demo">Se demo-besked</a>
+        </div>
 
-  <script src="./ai-widget.js"></script>
+        <div class="bullet"><div>✅</div><div><b>Auto-lead</b> – namn/telefon/samtycke inline</div></div>
+        <div class="bullet"><div>🔔</div><div><b>SMS-notis</b> – direkt ping till din mobil</div></div>
+        <div class="bullet"><div>🧠</div><div><b>Kontext</b> – skickar URL & användaragentrad till n8n</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="mini">
+          <span>🔐 Webbhook: krypterad anslutning</span>
+          <span style="color:#8debdc">Aktiv</span>
+        </div>
+        <div class="mini">
+          <span>📊 Google Sheets</span>
+          <span style="color:#c6d1ff">Ansluten</span>
+        </div>
+        <div class="mini">
+          <span>📱 Twilio / SMS</span>
+          <span style="color:#ffd399">Valfritt</span>
+        </div>
+        <p style="color:var(--muted); margin:0; font-size:13px">
+          Klicka “Starta chatt” för att öppna widgeten. Allt körs som vanilla JS (inga bundlers).
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Floating Button -->
+  <button class="fab" onclick="window.aiwToggle(true)">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a4 4 0 0 1-4 4H9l-6 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" stroke="currentColor" stroke-width="2"/></svg>
+    Chatta med oss
+  </button>
+
+  <!-- Chat Widget -->
+  <div id="ai-widget" class="widget">
+    <div class="w-card">
+      <div class="w-header">
+        <div class="w-logo">AI</div>
+        <div>
+          <div class="w-title">Mäklar-assistent</div>
+          <div class="w-sub">Svara på sekunder • Samlar leads</div>
+        </div>
+        <button class="w-close" onclick="window.aiwToggle(false)">Stäng</button>
+      </div>
+
+      <div id="aiw-messages" class="w-messages">
+        <!-- Bubbles injected by JS -->
+      </div>
+
+      <div class="w-input">
+        <div class="row">
+          <label class="field"><input id="aiw-name" placeholder="Namn (valfritt)"></label>
+          <label class="field"><input id="aiw-phone" placeholder="Telefon (+46…)" inputmode="tel"></label>
+        </div>
+        <label class="consent">
+          <input type="checkbox" id="aiw-consent"> Jag samtycker till att bli kontaktad.
+        </label>
+        <label class="field" style="align-items:flex-start">
+          <textarea id="aiw-input" placeholder="Skriv din fråga…" rows="2"></textarea>
+        </label>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn ghost" onclick="window.aiwSubmitLead()">Spara uppgifter</button>
+          <button class="send" onclick="window.aiwSend()">Skicka</button>
+        </div>
+        <div id="aiw-status" class="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./ai-widget.js" defer></script>
 </body>
 </html>
