@@ -1,5 +1,5 @@
 // ====== SETTINGS ======
-const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in; // <-- BYT TILL DIN!
+const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in"; // <-- BYT TILL DIN!
 const STORAGE_KEY = "aiw__messages";
 
 // ====== STATE ======
