@@ -1,12 +1,12 @@
 // ====== SETTINGS ======
-const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in"; // <-- BYT TILL DIN!
+const WEBHOOK_URL = "https://example.com/webhook/ai-chatbot";
 const STORAGE_KEY = "aiw__messages";
 
-// ====== STATE ======
 let messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 if (messages.length === 0) {
   messages = [{ role: "assistant", content: "Hej! Jag är din AI-assistent. Hur kan jag hjälpa dig idag?" }];
 }
+
 const els = {
   root: document.getElementById("ai-widget"),
   list: document.getElementById("aiw-messages"),
