@@ -1,136 +1,140 @@
-// ✅ YOUR LIVE WEBHOOK URL
-const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in";
+// ====== SETTINGS ======
+const WEBHOOK_URL = "https://maxnordman21.app.n8n.cloud/webhook/chat_in; // <-- BYT TILL DIN!
+const STORAGE_KEY = "aiw__messages";
 
-// Create and inject CSS
-const widgetStyles = `
-  #ai-widget-button {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 60px;
-    height: 60px;
-    background: #007aff;
-    color: #fff;
-    border-radius: 50%;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-    z-index: 999999;
-  }
-  #ai-widget-chat {
-    position: fixed;
-    bottom: 100px;
-    right: 24px;
-    width: 350px;
-    height: 460px;
-    background: #ffffff;
-    border-radius: 14px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    display: none;
-    flex-direction: column;
-    z-index: 999998;
-  }
-  #ai-widget-header {
-    padding: 16px;
-    background: #007aff;
-    color: #fff;
-    font-size: 18px;
-    border-radius: 14px 14px 0 0;
-  }
-  #ai-widget-messages {
-    flex: 1;
-    padding: 14px;
-    overflow-y: auto;
-    font-size: 14px;
-    color: #222;
-  }
-  #ai-widget-input-container {
-    padding: 10px;
-    display: flex;
-    gap: 10px;
-  }
-  #ai-widget-input {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-  #ai-widget-send {
-    background: #007aff;
-    color: white;
-    border: none;
-    padding: 0 16px;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-`;
+// ====== STATE ======
+let messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+if (messages.length === 0) {
+  messages = [{ role: "assistant", content: "Hej! Jag är din AI-assistent. Hur kan jag hjälpa dig idag?" }];
+}
+const els = {
+  root: document.getElementById("ai-widget"),
+  list: document.getElementById("aiw-messages"),
+  name: document.getElementById("aiw-name"),
+  phone: document.getElementById("aiw-phone"),
+  consent: document.getElementById("aiw-consent"),
+  input: document.getElementById("aiw-input"),
+  status: document.getElementById("aiw-status"),
+};
 
-// Add style tag
-const styleTag = document.createElement("style");
-styleTag.innerHTML = widgetStyles;
-document.head.appendChild(styleTag);
-
-// Create button
-const button = document.createElement("button");
-button.id = "ai-widget-button";
-button.innerText = "💬";
-document.body.appendChild(button);
-
-// Create chat container
-const chat = document.createElement("div");
-chat.id = "ai-widget-chat";
-chat.innerHTML = `
-  <div id="ai-widget-header">AI-Mäklare</div>
-  <div id="ai-widget-messages"></div>
-  <div id="ai-widget-input-container">
-    <input id="ai-widget-input" placeholder="Skriv ett meddelande...">
-    <button id="ai-widget-send">➤</button>
-  </div>
-`;
-document.body.appendChild(chat);
-
-const messagesContainer = document.getElementById("ai-widget-messages");
-const inputField = document.getElementById("ai-widget-input");
-
-// Toggle chat visibility
-button.addEventListener("click", () => {
-  chat.style.display = chat.style.display === "flex" ? "none" : "flex";
-  chat.style.flexDirection = "column";
-});
-
-// Append messages
-function addMessage(sender, text) {
-  const msg = document.createElement("div");
-  msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
-  messagesContainer.appendChild(msg);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+// ====== HELPERS ======
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); }
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+function formatSEPhone(v){
+  if (!v) return "";
+  let s = String(v).replace(/\D+/g, "");
+  if (s.startsWith("46")) s = "+" + s;
+  else if (s.startsWith("0")) s = "+46" + s.slice(1);
+  else if (!s.startsWith("+")) s = "+" + s;
+  return s;
+}
+function scrollBottom(){ els.list.scrollTop = els.list.scrollHeight; }
+function bubble({ role, content }){
+  const wrap = el("div", "bubble " + (role === "user" ? "user" : "ai"));
+  wrap.textContent = content;
+  els.list.appendChild(wrap);
 }
 
-// Handle sending
-async function sendMessage() {
-  const userMessage = inputField.value.trim();
-  if (!userMessage) return;
+// ====== RENDER EXISTING ======
+els.list.innerHTML = "";
+messages.forEach(bubble);
+scrollBottom();
 
-  addMessage("Du", userMessage);
-  inputField.value = "";
+// ====== PUBLIC API ======
+window.aiwToggle = (open) => {
+  els.root.classList.toggle("open", !!open);
+  if (open) setTimeout(scrollBottom, 50);
+};
+
+window.aiwSend = async () => {
+  const text = (els.input.value || "").trim();
+  if (!text) return;
+
+  // add user bubble
+  const userMsg = { role: "user", content: text };
+  messages.push(userMsg); save(); bubble(userMsg);
+  els.input.value = "";
+  scrollBottom();
+
+  // send to webhook
+  setStatus("");
+  const payload = {
+    message: text,
+    name: els.name.value || undefined,
+    phone: els.phone.value ? formatSEPhone(els.phone.value) : undefined,
+    consent: !!els.consent.checked,
+    source: "widget",
+    meta: {
+      href: location.href,
+      userAgent: navigator.userAgent,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+  };
 
   try {
-    const response = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userMessage })
-    });
+    typing(true);
+    const res = await fetch(WEBHOOK_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+    const data = await res.json().catch(() => ({}));
+    typing(false);
 
-    const data = await response.json();
-    addMessage("AI", data.reply);
-  } catch (err) {
-    addMessage("System", "Fel: Kunde inte nå AI-servern 😢");
+    const aiText = data?.message || "Tack! Jag återkommer strax.";
+    const aiMsg = { role: "assistant", content: aiText };
+    messages.push(aiMsg); save(); bubble(aiMsg); scrollBottom();
+  } catch (e) {
+    typing(false);
+    const errMsg = { role: "assistant", content: "Kunde inte nå servern just nu. Försök igen om en stund." };
+    messages.push(errMsg); save(); bubble(errMsg); scrollBottom();
+    setStatus("Fel: " + (e?.message || e));
+  }
+};
+
+window.aiwSubmitLead = async () => {
+  const phone = els.phone.value.trim();
+  if (!phone){ setStatus("Fyll i telefonnummer först."); return; }
+  if (!els.consent.checked){ setStatus("Du behöver ge samtycke."); return; }
+
+  setStatus("");
+  const payload = {
+    message: "Lead-intake",
+    name: els.name.value || "",
+    phone: formatSEPhone(phone),
+    consent: true,
+    source: "widget",
+    meta: { intent: "lead-only" },
+  };
+
+  try {
+    typing(true);
+    const res = await fetch(WEBHOOK_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error("Server " + res.status);
+    typing(false);
+
+    const ok = { role: "assistant", content: "Tack! Vi har sparat dina uppgifter och hör av oss snart." };
+    messages.push(ok); save(); bubble(ok); scrollBottom();
+  } catch (e) {
+    typing(false);
+    setStatus("Kunde inte spara lead just nu.");
+  }
+};
+
+// ====== UI bits ======
+let typingEl = null;
+function typing(on){
+  if (on){
+    if (typingEl) return;
+    typingEl = el("div","bubble ai"); typingEl.textContent = "Skriver…";
+    els.list.appendChild(typingEl); scrollBottom();
+  } else {
+    if (typingEl){ typingEl.remove(); typingEl = null; }
   }
 }
+function setStatus(msg){ els.status.textContent = msg || ""; }
 
-document.getElementById("ai-widget-send").addEventListener("click", sendMessage);
-inputField.addEventListener("keydown", e => {
-  if (e.key === "Enter") sendMessage();
+// Enter to send
+els.input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    window.aiwSend();
+  }
 });
+
